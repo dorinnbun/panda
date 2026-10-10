@@ -1,12 +1,12 @@
 # Panda
 
-A voice-first personal AI assistant in the spirit of J.A.R.V.I.S. from Iron Man, with a holographic HUD dashboard, long-term memory, and a calm, dry-witted butler personality. It runs on your own VPS and is published to the internet through a Cloudflare Tunnel.
+A voice-first personal AI assistant in the spirit of J.A.R.V.I.S. from Iron Man, with a Blade Runner 2049-inspired dashboard, long-term memory, and a calm, dry-witted butler personality. It runs on your own VPS and is published to the internet through a Cloudflare Tunnel.
 
 ```
  Browser (desktop / phone)                VPS (Docker)                       Cloud
  ┌──────────────────────────┐   wss    ┌────────────────────────┐  HTTPS  ┌──────────────┐
- │ HUD dashboard            │◄────────►│ FastAPI app            │────────►│ Claude API   │
- │ - arc-reactor visual     │          │ - conversation engine  │         │ (+ web search)│
+ │ Dashboard                │◄────────►│ FastAPI app            │────────►│ Claude API   │
+ │ - animated iris visual   │          │ - conversation engine  │         │ (+ web search)│
  │ - wake word / push-talk  │          │ - tools: memory, tasks,│         └──────────────┘
  │ - speech synthesis       │          │   reminders, notes,    │         ┌──────────────┐
  └──────────▲───────────────┘          │   weather, server stats│────────►│ Open-Meteo   │
@@ -19,6 +19,10 @@ A voice-first personal AI assistant in the spirit of J.A.R.V.I.S. from Iron Man,
       └──────────────────────────────────────────────┘
 ```
 
+![Panda dashboard](docs/dashboard.png)
+
+**New here? Follow [docs/SETUP.md](docs/SETUP.md)**: the step-by-step plan from an empty VPS to a Panda that knows you and talks with you.
+
 ## What it can do
 
 **Talks like a superintelligent butler**
@@ -28,13 +32,14 @@ A voice-first personal AI assistant in the spirit of J.A.R.V.I.S. from Iron Man,
 
 **Voice**
 - Wake word: turn it on and say *"Panda, what's on my list today?"*, or just *"Panda"*, wait for the chime, then talk.
-- Push-to-talk: click the mic or the reactor, or hold **Space**. **Esc** or a click on the reactor stops it talking.
+- Push-to-talk: click the mic or the eye, or hold **Space**. **Esc** or a click on the eye stops it talking.
 - British voice chosen automatically from the voices your device has (Microsoft Ryan, Google UK English Male, Daniel...). For a film-quality voice, add an ElevenLabs key; "Premium (server)" then appears in the voice list.
 - Voice input uses the browser's speech recognition (Chrome, Edge, Safari). Typing always works.
 
 **Remembers you**
 - Long-term memory in SQLite with full-text search. It saves facts about you on its own (preferences, people, projects, routines, standing instructions) and recalls relevant ones on every turn.
 - Important memories (importance 4-5) are always in mind; the rest are pulled in when the conversation touches them.
+- **Calibrate** button: Panda interviews you one question at a time and saves what it learns.
 - You can see and delete every memory in the Memory Core panel, or just say "forget that".
 - Conversations persist across restarts. "New session" clears the chat but keeps the memory.
 
@@ -44,7 +49,7 @@ A voice-first personal AI assistant in the spirit of J.A.R.V.I.S. from Iron Man,
 - Notes: save and search longer text such as meeting notes, ideas and drafts.
 - Live web search and page reading for anything current.
 - Weather and a three-day forecast.
-- Diagnostics for the server it runs on (CPU, memory, disk, network, uptime), shown live on the HUD.
+- Diagnostics for the server it runs on (CPU, memory, disk, network, uptime), shown live on the dashboard.
 - Briefing button: time, weather, tasks, reminders and anything else worth knowing, in one go.
 
 **Everywhere at once**: open the dashboard on your laptop and phone together. They share one conversation, and only the device you spoke to answers out loud.
@@ -138,7 +143,7 @@ All settings are in `.env`; see `.env.example` for the full list.
 
 | Variable | Default | Purpose |
 |---|---|---|
-| `ASSISTANT_NAME` | `Panda` | Name, wake word, and HUD title |
+| `ASSISTANT_NAME` | `Panda` | Name, wake word, and dashboard title |
 | `OWNER_NAME` / `OWNER_TITLE` | `User` / `sir` | Who it serves and how it addresses you |
 | `PANDA_MODEL` | `claude-opus-5-5` | Claude model |
 | `PANDA_EFFORT` | `low` | `low` is fastest for voice. `medium`/`high` think harder but are slower and cost more |
@@ -157,7 +162,7 @@ panda/
   tools.py     memory, tasks, reminders, notes, weather, system status
   db.py        SQLite storage with full-text search
   auth.py      passphrase login and signed session cookie
-web/           HUD dashboard (HTML/CSS/JS, no build step)
+web/           dashboard (HTML/CSS/JS, no build step)
 deploy/        systemd unit for non-Docker installs
 ```
 

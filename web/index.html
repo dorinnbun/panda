@@ -3,47 +3,49 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <meta name="theme-color" content="#02070d">
+  <meta name="theme-color" content="#0b0806">
   <title>Panda HUD</title>
-  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 32 32%27%3E%3Ccircle cx=%2716%27 cy=%2716%27 r=%2713%27 fill=%27none%27 stroke=%27%233fd2ff%27 stroke-width=%273%27/%3E%3Ccircle cx=%2716%27 cy=%2716%27 r=%275%27 fill=%27%233fd2ff%27/%3E%3C/svg%3E">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 32 32%27%3E%3Ccircle cx=%2716%27 cy=%2716%27 r=%2713%27 fill=%27none%27 stroke=%27%23ff9a3c%27 stroke-width=%273%27/%3E%3Ccircle cx=%2716%27 cy=%2716%27 r=%275%27 fill=%27%23ff9a3c%27/%3E%3C/svg%3E">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@300;400;600&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Jura:wght@300;400;600&family=Michroma&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/static/style.css">
 </head>
 <body>
+  <canvas id="atmosphere" aria-hidden="true"></canvas>
   <div id="boot"><pre id="boot-log"></pre></div>
 
   <div class="hud">
     <header class="top">
-      <div><span class="brand" id="brand">PANDA</span></div>
+      <div><span class="brand" id="brand">PANDA</span><span class="brand-sub">Personal intelligence · unit 01</span></div>
       <div class="hide-sm"><span class="status-dot" id="link-dot"></span><span id="link-text">offline</span></div>
       <div class="clock" id="clock">--:--:--</div>
       <div class="actions">
         <button class="btn small" id="btn-briefing" title="Ask for a briefing">Briefing</button>
+        <button class="btn small" id="btn-calibrate" title="Let Panda interview you so it remembers who you are">Calibrate</button>
         <button class="btn small" id="btn-new" title="Start a fresh conversation (memory is kept)">New session</button>
         <button class="btn small hide-sm" id="btn-logout">Lock</button>
       </div>
     </header>
 
     <section class="col side" id="left">
-      <div class="panel">
-        <h2>System diagnostics <small id="sys-host"></small></h2>
+      <div class="panel" data-serial="SYS-2049">
+        <h2>Vitals <small id="sys-host"></small></h2>
         <div class="gauges">
-          <div class="gauge" data-key="cpu_percent"><svg viewBox="0 0 80 80"><circle class="track" cx="40" cy="40" r="32"/><circle class="bar" cx="40" cy="40" r="32" transform="rotate(-90 40 40)"/><text x="40" y="46" text-anchor="middle">0</text></svg>CPU</div>
-          <div class="gauge" data-key="mem_percent"><svg viewBox="0 0 80 80"><circle class="track" cx="40" cy="40" r="32"/><circle class="bar" cx="40" cy="40" r="32" transform="rotate(-90 40 40)"/><text x="40" y="46" text-anchor="middle">0</text></svg>MEMORY</div>
-          <div class="gauge" data-key="disk_percent"><svg viewBox="0 0 80 80"><circle class="track" cx="40" cy="40" r="32"/><circle class="bar" cx="40" cy="40" r="32" transform="rotate(-90 40 40)"/><text x="40" y="46" text-anchor="middle">0</text></svg>DISK</div>
+          <div class="gauge" data-key="cpu_percent"><span>CPU</span><div class="meter"><div class="fill"></div></div><span class="val">0</span></div>
+          <div class="gauge" data-key="mem_percent"><span>MEMORY</span><div class="meter"><div class="fill"></div></div><span class="val">0</span></div>
+          <div class="gauge" data-key="disk_percent"><span>DISK</span><div class="meter"><div class="fill"></div></div><span class="val">0</span></div>
         </div>
         <svg class="spark" id="cpu-spark" viewBox="0 0 100 40" preserveAspectRatio="none"><path class="area"/><path class="line"/></svg>
         <dl class="kv" id="sys-kv"></dl>
       </div>
 
-      <div class="panel" id="weather-panel">
-        <h2>Atmospherics <small id="wx-place"></small></h2>
+      <div class="panel" id="weather-panel" data-serial="ATM-07">
+        <h2>Atmosphere <small id="wx-place"></small></h2>
         <div id="wx-body" class="empty">Set DEFAULT_LOCATION to enable.</div>
       </div>
 
-      <div class="panel">
+      <div class="panel" data-serial="VOX-K">
         <h2>Voice</h2>
         <div class="settings">
           <label>Wake word <button class="btn small" id="btn-wake">Off</button></label>
@@ -64,20 +66,20 @@
     </main>
 
     <section class="col side" id="right">
-      <div class="panel">
+      <div class="panel" data-serial="DIR-31">
         <h2>Directives <small id="task-count"></small></h2>
         <ul class="list" id="tasks"></ul>
       </div>
-      <div class="panel">
-        <h2>Scheduled alerts</h2>
+      <div class="panel" data-serial="ALR-04">
+        <h2>Alerts</h2>
         <ul class="list" id="reminders"></ul>
       </div>
-      <div class="panel">
-        <h2>Memory core <small id="mem-count"></small></h2>
+      <div class="panel" data-serial="MEM-∞">
+        <h2>Memories <small id="mem-count"></small></h2>
         <ul class="list" id="memories"></ul>
       </div>
-      <div class="panel">
-        <h2>Archives</h2>
+      <div class="panel" data-serial="REC-88">
+        <h2>Records</h2>
         <ul class="list" id="notes"></ul>
       </div>
     </section>
@@ -87,7 +89,7 @@
         <svg viewBox="0 0 24 24"><path d="M12 15a3 3 0 0 0 3-3V6a3 3 0 1 0-6 0v6a3 3 0 0 0 3 3zm5-3a5 5 0 0 1-10 0H5a7 7 0 0 0 6 6.92V22h2v-3.08A7 7 0 0 0 19 12h-2z"/></svg>
       </button>
       <form id="cmd-form" autocomplete="off">
-        <input type="text" id="cmd" placeholder="Speak, or type a command..." enterkeyhint="send">
+        <input type="text" id="cmd" placeholder="Speak, or type..." enterkeyhint="send">
         <button class="btn" type="submit">Send</button>
       </form>
     </footer>

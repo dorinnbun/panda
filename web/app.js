@@ -1,4 +1,4 @@
-/* HUD client: live channel, voice in/out, reactor visual, dashboard panels. */
+/* HUD client: live channel, voice in/out, iris visual, dashboard panels. */
 (() => {
   "use strict";
 
@@ -347,7 +347,7 @@
     },
   };
 
-  // Microphone level for the reactor (optional; purely visual).
+  // Microphone level for the iris (optional; purely visual).
   const mic = {
     analyser: null,
     data: null,
@@ -371,110 +371,161 @@
     },
   };
 
-  /* ---------------------------------------------------------- reactor */
+  /* ------------------------------------------------------------- iris */
 
-  const reactor = (() => {
-    const canvas = $("reactor-canvas");
+  // The presence: an eye. Iris fibres breathe with the voice, the pupil dilates
+  // when listening, caustic ripples drift outward, a scan line sweeps the lens.
+  function fitCanvas(canvas, onSize) {
     const g = canvas.getContext("2d");
-    let w = 0, h = 0, dpr = 1, t = 0;
+    const resize = () => {
+      const dpr = window.devicePixelRatio || 1;
+      const r = canvas.getBoundingClientRect();
+      canvas.width = r.width * dpr; canvas.height = r.height * dpr;
+      g.setTransform(dpr, 0, 0, dpr, 0, 0);
+      onSize(r.width, r.height);
+    };
+    new ResizeObserver(resize).observe(canvas);
+    return g;
+  }
+
+  (() => {
+    let w = 0, h = 0, t = 0;
+    const g = fitCanvas($("reactor-canvas"), (W, H) => { w = W; h = H; });
     const colors = {
-      idle: [63, 210, 255], listening: [255, 181, 71], thinking: [120, 160, 255], speaking: [63, 230, 255],
+      idle: [255, 154, 60], listening: [255, 79, 184], thinking: [95, 227, 214], speaking: [255, 196, 120],
     };
     let cur = [...colors.idle];
-
-    function resize() {
-      dpr = window.devicePixelRatio || 1;
-      const r = canvas.getBoundingClientRect();
-      w = r.width; h = r.height;
-      canvas.width = w * dpr; canvas.height = h * dpr;
-      g.setTransform(dpr, 0, 0, dpr, 0, 0);
-    }
-    new ResizeObserver(resize).observe(canvas);
+    let pupil = 0.32;
+    // fixed per-fibre randomness so the iris has texture, not noise
+    const fibres = Array.from({ length: 220 }, () => ({ len: 0.55 + Math.random() * 0.45, phase: Math.random() * 6.28, w: 0.4 + Math.random() * 1.1 }));
 
     function frame() {
       requestAnimationFrame(frame);
-      if (w < 40 || h < 40) return; // not laid out yet
+      if (w < 40 || h < 40) return;
       t += 1 / 60;
       const target = colors[state.mode];
-      cur = cur.map((c, i) => c + (target[i] - c) * 0.08);
+      cur = cur.map((c, i) => c + (target[i] - c) * 0.06);
       const rgb = (a) => `rgba(${cur[0] | 0},${cur[1] | 0},${cur[2] | 0},${a})`;
 
-      let lvl = 0;
-      if (state.mode === "listening") lvl = mic.level();
-      else if (state.mode === "speaking") lvl = 0.35 + 0.25 * Math.abs(Math.sin(t * 9)) * (0.6 + 0.4 * Math.sin(t * 2.3));
-      else if (state.mode === "thinking") lvl = 0.25 + 0.1 * Math.sin(t * 6);
-      else lvl = 0.06 + 0.04 * Math.sin(t * 1.5);
-      state.level += (lvl - state.level) * 0.2;
+      let lvl;
+      if (state.mode === "listening") lvl = 0.15 + mic.level();
+      else if (state.mode === "speaking") lvl = 0.3 + 0.3 * Math.abs(Math.sin(t * 8.5)) * (0.6 + 0.4 * Math.sin(t * 2.1));
+      else if (state.mode === "thinking") lvl = 0.22 + 0.08 * Math.sin(t * 5);
+      else lvl = 0.05 + 0.03 * Math.sin(t * 1.2);
+      state.level += (lvl - state.level) * 0.18;
 
-      const cx = w / 2, cy = h / 2, R = Math.min(w, h) / 2 - 4;
+      const pupilTarget = { idle: 0.3, listening: 0.42, thinking: 0.24, speaking: 0.34 }[state.mode] + state.level * 0.05;
+      pupil += (pupilTarget - pupil) * 0.05;
+
+      const cx = w / 2, cy = h * 0.46, R = Math.min(w, h) * 0.42;
       g.clearRect(0, 0, w, h);
-      g.lineCap = "round";
 
-      // outer glow
-      const glow = g.createRadialGradient(cx, cy, R * 0.1, cx, cy, R);
-      glow.addColorStop(0, rgb(0.35 + state.level * 0.4));
-      glow.addColorStop(0.35, rgb(0.08));
-      glow.addColorStop(1, rgb(0));
-      g.fillStyle = glow;
+      // haze bloom behind the eye
+      const bloom = g.createRadialGradient(cx, cy, R * 0.2, cx, cy, R * 1.25);
+      bloom.addColorStop(0, rgb(0.22 + state.level * 0.25));
+      bloom.addColorStop(0.5, rgb(0.06));
+      bloom.addColorStop(1, rgb(0));
+      g.fillStyle = bloom;
       g.fillRect(0, 0, w, h);
 
-      const spin = state.mode === "thinking" ? 2.5 : 0.4;
-
-      // tick ring
-      g.strokeStyle = rgb(0.5);
-      g.lineWidth = 1;
-      for (let i = 0; i < 120; i++) {
-        const a = (i / 120) * Math.PI * 2 + t * 0.05;
-        const len = i % 10 === 0 ? 10 : 4;
+      // caustic ripples drifting outward (light through water)
+      for (let k = 0; k < 4; k++) {
+        const p = ((t * 0.12 + k / 4) % 1);
+        g.strokeStyle = rgb(0.18 * (1 - p));
+        g.lineWidth = 1;
         g.beginPath();
-        g.moveTo(cx + Math.cos(a) * (R - len), cy + Math.sin(a) * (R - len));
-        g.lineTo(cx + Math.cos(a) * R, cy + Math.sin(a) * R);
-        g.stroke();
-      }
-
-      // segmented rotating rings
-      const ring = (r, segs, gap, width, speed, alpha) => {
-        g.strokeStyle = rgb(alpha);
-        g.lineWidth = width;
-        const step = (Math.PI * 2) / segs;
-        for (let i = 0; i < segs; i++) {
-          const a0 = i * step + t * speed;
-          g.beginPath();
-          g.arc(cx, cy, r, a0, a0 + step * (1 - gap));
-          g.stroke();
+        for (let a = 0; a <= Math.PI * 2 + 0.01; a += Math.PI / 90) {
+          const wob = 1 + 0.03 * Math.sin(a * 5 + t * 1.3 + k) + 0.02 * Math.sin(a * 9 - t);
+          const r = R * (0.95 + p * 0.5) * wob;
+          const x = cx + Math.cos(a) * r, y = cy + Math.sin(a) * r;
+          a === 0 ? g.moveTo(x, y) : g.lineTo(x, y);
         }
-      };
-      ring(R * 0.86, 3, 0.25, 2, 0.3 * spin, 0.7);
-      ring(R * 0.80, 24, 0.5, 5, -0.2 * spin, 0.35);
-      ring(R * 0.70, 6, 0.15, 1.5, 0.6 * spin, 0.6);
-
-      // audio bars
-      const bars = 64;
-      for (let i = 0; i < bars; i++) {
-        const a = (i / bars) * Math.PI * 2 - Math.PI / 2;
-        const n = Math.abs(Math.sin(i * 1.7 + t * 4) * Math.cos(i * 0.6 - t * 3));
-        const len = R * (0.03 + state.level * 0.18 * (0.4 + n));
-        const r0 = R * 0.5;
-        g.strokeStyle = rgb(0.5 + state.level * 0.5);
-        g.lineWidth = 2;
-        g.beginPath();
-        g.moveTo(cx + Math.cos(a) * r0, cy + Math.sin(a) * r0);
-        g.lineTo(cx + Math.cos(a) * (r0 + len), cy + Math.sin(a) * (r0 + len));
         g.stroke();
       }
 
-      // core
-      const coreR = R * (0.3 + state.level * 0.04);
-      const core = g.createRadialGradient(cx, cy, 0, cx, cy, coreR);
-      core.addColorStop(0, "rgba(255,255,255,0.95)");
-      core.addColorStop(0.35, rgb(0.75));
-      core.addColorStop(1, rgb(0));
-      g.fillStyle = core;
-      g.beginPath(); g.arc(cx, cy, coreR, 0, Math.PI * 2); g.fill();
+      // iris fibres
+      const inner = R * pupil, rot = t * (state.mode === "thinking" ? 0.35 : 0.04);
+      for (let i = 0; i < fibres.length; i++) {
+        const f = fibres[i];
+        const a = (i / fibres.length) * Math.PI * 2 + rot;
+        const pulse = 0.85 + 0.15 * Math.sin(t * 3 + f.phase) + state.level * 0.35 * Math.sin(t * 9 + f.phase);
+        const outer = inner + (R - inner) * f.len * Math.min(1.08, pulse);
+        const grad = g.createLinearGradient(cx + Math.cos(a) * inner, cy + Math.sin(a) * inner, cx + Math.cos(a) * outer, cy + Math.sin(a) * outer);
+        grad.addColorStop(0, rgb(0.85));
+        grad.addColorStop(1, rgb(0));
+        g.strokeStyle = grad;
+        g.lineWidth = f.w;
+        g.beginPath();
+        g.moveTo(cx + Math.cos(a) * inner, cy + Math.sin(a) * inner);
+        g.lineTo(cx + Math.cos(a) * outer, cy + Math.sin(a) * outer);
+        g.stroke();
+      }
 
-      g.strokeStyle = rgb(0.9);
-      g.lineWidth = 2;
-      g.beginPath(); g.arc(cx, cy, R * 0.42, 0, Math.PI * 2); g.stroke();
+      // limbal ring and outer hairlines
+      g.strokeStyle = rgb(0.55);
+      g.lineWidth = 1.5;
+      g.beginPath(); g.arc(cx, cy, R, 0, Math.PI * 2); g.stroke();
+      g.strokeStyle = rgb(0.25);
+      g.lineWidth = 1;
+      for (const [r, a0, a1] of [[1.12, -0.9, 0.9], [1.12, Math.PI - 0.9, Math.PI + 0.9], [1.2, -0.25, 0.25], [1.2, Math.PI - 0.25, Math.PI + 0.25]]) {
+        g.beginPath(); g.arc(cx, cy, R * r, a0, a1); g.stroke();
+      }
+
+      // pupil with a warm rim and a catch-light
+      const pg = g.createRadialGradient(cx, cy, inner * 0.2, cx, cy, inner * 1.05);
+      pg.addColorStop(0, "rgba(5,3,2,1)");
+      pg.addColorStop(0.85, "rgba(10,5,3,0.98)");
+      pg.addColorStop(1, rgb(0.6));
+      g.fillStyle = pg;
+      g.beginPath(); g.arc(cx, cy, inner, 0, Math.PI * 2); g.fill();
+      g.fillStyle = "rgba(255,240,220,0.55)";
+      g.beginPath(); g.ellipse(cx - inner * 0.35, cy - inner * 0.4, inner * 0.14, inner * 0.08, -0.6, 0, Math.PI * 2); g.fill();
+
+      // horizontal scan line sweeping the lens
+      const sy = cy - R + ((t * 0.25) % 1) * R * 2;
+      const half = Math.sqrt(Math.max(0, R * R - (sy - cy) ** 2));
+      g.strokeStyle = rgb(0.35);
+      g.lineWidth = 1;
+      g.beginPath(); g.moveTo(cx - half - 18, sy); g.lineTo(cx + half + 18, sy); g.stroke();
+    }
+    requestAnimationFrame(frame);
+  })();
+
+  /* ------------------------------------------------------- atmosphere */
+
+  // Rain streaks and drifting dust over the amber haze. Cheap enough for phones.
+  (() => {
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    let w = 0, h = 0;
+    const g = fitCanvas($("atmosphere"), (W, H) => { w = W; h = H; });
+    const rand = (a, b) => a + Math.random() * (b - a);
+    const drops = Array.from({ length: 140 }, () => ({ x: rand(0, 1), y: rand(0, 1), v: rand(0.9, 1.6), l: rand(10, 28), a: rand(0.05, 0.16) }));
+    const dust = Array.from({ length: 45 }, () => ({ x: rand(0, 1), y: rand(0, 1), r: rand(0.6, 2.2), vx: rand(-0.02, 0.02), vy: rand(-0.012, 0.004), p: rand(0, 6.28) }));
+    let last = performance.now();
+
+    function frame(now) {
+      requestAnimationFrame(frame);
+      const dt = Math.min(0.05, (now - last) / 1000);
+      last = now;
+      if (!w || document.hidden) return;
+      g.clearRect(0, 0, w, h);
+
+      g.lineWidth = 1;
+      for (const d of drops) {
+        d.y += d.v * dt * 0.9;
+        d.x += d.v * dt * 0.08;
+        if (d.y > 1.05) { d.y = -0.05; d.x = rand(-0.1, 1); }
+        const x = d.x * w, y = d.y * h;
+        g.strokeStyle = `rgba(232,201,160,${d.a})`;
+        g.beginPath(); g.moveTo(x, y); g.lineTo(x + d.l * 0.09, y + d.l); g.stroke();
+      }
+      for (const p of dust) {
+        p.x += p.vx * dt; p.y += p.vy * dt; p.p += dt;
+        if (p.x < -0.02) p.x = 1.02; if (p.x > 1.02) p.x = -0.02;
+        if (p.y < -0.02) p.y = 1.02; if (p.y > 1.02) p.y = -0.02;
+        g.fillStyle = `rgba(255,170,90,${0.12 + 0.12 * Math.sin(p.p)})`;
+        g.beginPath(); g.arc(p.x * w, p.y * h, p.r, 0, Math.PI * 2); g.fill();
+      }
     }
     requestAnimationFrame(frame);
   })();
@@ -556,7 +607,7 @@
         if (liveMsg) {
           const tag = document.createElement("span");
           tag.className = "tool";
-          tag.textContent = "⟐ " + ev.name.replace(/_/g, " ");
+          tag.textContent = ev.name.replace(/_/g, " ").toUpperCase();
           liveMsg.querySelector(".who").appendChild(document.createTextNode(" ")); liveMsg.querySelector(".who").appendChild(tag);
         }
         break;
@@ -575,7 +626,7 @@
         break;
       case "reminder":
         chime(false);
-        toast("⏰ " + ev.text, 20000);
+        toast("ALERT · " + ev.text, 20000);
         state.speakThisTurn = true;
         tts.say(`Pardon the interruption, ${state.title}. A reminder: ${ev.text}`);
         if ("Notification" in window && Notification.permission === "granted" && document.hidden) {
@@ -608,8 +659,8 @@
     state.owner = d.owner;
     state.title = d.title;
     if (state.serverTts !== d.server_tts) { state.serverTts = d.server_tts; tts.loadVoices(); }
-    document.title = d.assistant.toUpperCase() + " HUD";
-    $("brand").textContent = d.assistant.toUpperCase().split("").join(".");
+    document.title = d.assistant + " Interface";
+    $("brand").textContent = d.assistant.toUpperCase();
     $("reactor-name").textContent = d.assistant.toUpperCase();
     setMode(state.mode);
 
@@ -666,13 +717,11 @@
     $("sys-host").textContent = s.host;
     document.querySelectorAll(".gauge").forEach((el) => {
       const v = s[el.dataset.key] ?? 0;
-      const bar = el.querySelector(".bar");
-      const c = 2 * Math.PI * 32;
-      bar.style.strokeDasharray = c;
-      bar.style.strokeDashoffset = c * (1 - v / 100);
-      bar.classList.toggle("warn", v >= 75 && v < 90);
-      bar.classList.toggle("crit", v >= 90);
-      el.querySelector("text").textContent = Math.round(v);
+      const fill = el.querySelector(".fill");
+      fill.style.width = Math.min(100, v) + "%";
+      fill.classList.toggle("warn", v >= 75 && v < 90);
+      fill.classList.toggle("crit", v >= 90);
+      el.querySelector(".val").textContent = Math.round(v) + "%";
     });
     state.cpuHistory.push(s.cpu_percent);
     if (state.cpuHistory.length > 60) state.cpuHistory.shift();
@@ -738,6 +787,9 @@
 
   $("btn-new").addEventListener("click", () => ws && ws.send(JSON.stringify({ type: "reset" })));
   $("btn-briefing").addEventListener("click", () => send("Give me my briefing: time, weather, what's on my task list and any reminders, plus anything I should know."));
+  $("btn-calibrate").addEventListener("click", () => send(
+    "Let's calibrate. Interview me so you can get to know me: who I am, what I do, the projects and people that matter, " +
+    "my daily routine, and how I like you to work. One short question at a time, and save what you learn as you go."));
   $("btn-logout").addEventListener("click", async () => { await post("/api/logout"); location.href = "/login"; });
 
   // Hold Space to talk (when not typing); Escape silences speech.
@@ -767,11 +819,14 @@
 
   (async function boot() {
     const lines = [
-      "INITIALISING CORE SYSTEMS ........ OK",
-      "LOADING MEMORY CORE .............. OK",
-      "CALIBRATING VOICE SYNTHESIS ...... OK",
-      "ESTABLISHING SECURE UPLINK ....... OK",
-      "ALL SYSTEMS NOMINAL.",
+      "PANDA // PERSONAL INTELLIGENCE",
+      "",
+      "MEMORY ARCHIVE ............ MOUNTED",
+      "VOICE SYNTHESIS ........... CALIBRATED",
+      "BASELINE .................. WITHIN RANGE",
+      "UPLINK .................... SECURE",
+      "",
+      "ONLINE.",
     ];
     const log = $("boot-log");
     for (const l of lines) {
