@@ -67,6 +67,8 @@ header .brand {
   font-family: var(--wide); color: var(--sand); font-size: 17px; letter-spacing: 0.55em;
   text-shadow: 0 0 18px rgba(255, 154, 60, 0.45);
 }
+header .brand-wrap { display: flex; align-items: center; gap: 12px; }
+header .brand-icon { width: 40px; height: 40px; flex: none; filter: drop-shadow(0 0 10px rgba(255,79,184,.35)); }
 header .brand-sub { display: block; font-size: 9px; letter-spacing: 0.35em; color: var(--muted); margin-top: 4px; }
 header .status-dot { display: inline-block; width: 6px; height: 6px; background: var(--red); margin-right: 8px; box-shadow: 0 0 8px var(--red); }
 header .status-dot.on { background: var(--teal); box-shadow: 0 0 8px var(--teal); }

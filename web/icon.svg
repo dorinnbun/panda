@@ -1,0 +1,69 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <title>Panda</title>
+  <defs>
+    <radialGradient id="bg" cx="50%" cy="92%" r="80%">
+      <stop offset="0" stop-color="#5a2a0c"/>
+      <stop offset="0.45" stop-color="#1c0e07"/>
+      <stop offset="1" stop-color="#0b0806"/>
+    </radialGradient>
+    <linearGradient id="beam" x1="0" y1="1" x2="0" y2="0">
+      <stop offset="0" stop-color="#ff9a3c" stop-opacity="0.55"/>
+      <stop offset="0.35" stop-color="#ff4fb8" stop-opacity="0.22"/>
+      <stop offset="1" stop-color="#ff4fb8" stop-opacity="0"/>
+    </linearGradient>
+    <linearGradient id="holo" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#fff4fb"/>
+      <stop offset="0.6" stop-color="#ffd3ee"/>
+      <stop offset="1" stop-color="#ff9bd8"/>
+    </linearGradient>
+    <linearGradient id="dark" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#c42a86"/>
+      <stop offset="1" stop-color="#6e0f48"/>
+    </linearGradient>
+    <pattern id="scan" width="8" height="8" patternUnits="userSpaceOnUse">
+      <rect width="8" height="3" fill="#2a0a1c" fill-opacity="0.35"/>
+    </pattern>
+    <filter id="glow" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="9" result="b"/>
+      <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <clipPath id="headClip">
+      <circle cx="158" cy="146" r="50"/>
+      <circle cx="354" cy="146" r="50"/>
+      <ellipse cx="256" cy="236" rx="132" ry="114"/>
+    </clipPath>
+  </defs>
+
+  <rect width="512" height="512" rx="112" fill="url(#bg)"/>
+
+  <!-- projection beam -->
+  <polygon points="196,436 316,436 448,96 64,96" fill="url(#beam)"/>
+
+  <!-- holographic panda head -->
+  <g filter="url(#glow)" opacity="0.95">
+    <!-- teal ghost edge: slight chromatic split of a projection -->
+    <g fill="none" stroke="#5fe3d6" stroke-opacity="0.45" stroke-width="4" transform="translate(-5 2)">
+      <ellipse cx="256" cy="236" rx="132" ry="114"/>
+    </g>
+    <circle cx="158" cy="146" r="50" fill="url(#dark)"/>
+    <circle cx="354" cy="146" r="50" fill="url(#dark)"/>
+    <ellipse cx="256" cy="236" rx="132" ry="114" fill="url(#holo)" fill-opacity="0.9"/>
+    <!-- eye patches -->
+    <ellipse cx="204" cy="232" rx="34" ry="46" transform="rotate(-32 204 232)" fill="#5c0c3c"/>
+    <ellipse cx="308" cy="232" rx="34" ry="46" transform="rotate(32 308 232)" fill="#5c0c3c"/>
+    <circle cx="210" cy="226" r="12" fill="#fff3fb"/>
+    <circle cx="302" cy="226" r="12" fill="#fff3fb"/>
+    <!-- nose and mouth -->
+    <path d="M236 282 Q256 272 276 282 Q268 300 256 302 Q244 300 236 282 Z" fill="#5c0c3c"/>
+    <path d="M256 302 Q256 318 238 322 M256 302 Q256 318 274 322" fill="none" stroke="#5c0c3c" stroke-width="7" stroke-linecap="round"/>
+  </g>
+
+  <!-- scanlines over the projection only -->
+  <rect width="512" height="512" fill="url(#scan)" clip-path="url(#headClip)"/>
+  <!-- bright scan band -->
+  <rect x="100" y="250" width="312" height="5" fill="#ffffff" fill-opacity="0.6" clip-path="url(#headClip)"/>
+
+  <!-- emitter puck -->
+  <ellipse cx="256" cy="444" rx="86" ry="20" fill="#1a0d06" stroke="#ff9a3c" stroke-width="5"/>
+  <ellipse cx="256" cy="440" rx="54" ry="9" fill="#ffb066" filter="url(#glow)"/>
+</svg>
